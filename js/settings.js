@@ -5,8 +5,6 @@ const strategyToggle = document.getElementById('strategy-toggle');
 const betToggle = document.getElementById('bet-toggle');
 const discreetModeToggle = document.getElementById('discreet-mode');
 const darkModeToggle = document.getElementById('dark-mode');
-
-// Nové nastavení pro bank a sázky
 const bankInput = document.getElementById('bank');
 const targetProfitInput = document.getElementById('target-profit');
 const lossThresholdInput = document.getElementById('loss-threshold');
@@ -53,7 +51,6 @@ function loadSettings() {
   }
 }
 
-// Uložení nastavení
 settingsForm.addEventListener('submit', e => {
   e.preventDefault();
   const settings = {
@@ -68,7 +65,6 @@ settingsForm.addEventListener('submit', e => {
     baseBet: baseBetInput.value
   };
   localStorage.setItem('bjSettings', JSON.stringify(settings));
-  // Aktualizace globálních proměnných
   window.countingSystem = settings.countingSystem;
   window.strategyEnabled = settings.strategyEnabled;
   window.betEnabled = settings.betEnabled;
@@ -79,11 +75,10 @@ settingsForm.addEventListener('submit', e => {
   document.body.classList.toggle('discreet', settings.discreetMode);
   document.body.classList.toggle('dark', settings.darkMode);
   alert('Nastavení uloženo!');
-  // Aktualizace zobrazení v hlavní části, pokud je načtena
   if (typeof updateDisplay === 'function') {
     updateDisplay();
   }
 });
 
-// Načtení nastavení při startu
 loadSettings();
+
