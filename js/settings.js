@@ -81,4 +81,3 @@ settingsForm.addEventListener('submit', e => {
 });
 
 loadSettings();
-
