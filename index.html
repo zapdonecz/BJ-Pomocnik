@@ -67,7 +67,7 @@
         <p id="bet-recommendation">–</p>
       </div>
 
-      <!-- Bank a sázení -->
+      <!-- Bank & Sázení -->
       <div class="bank-info">
         <h2>Bank & Sázení</h2>
         <p>Počáteční bank: <span id="initial-bank">-</span></p>
@@ -83,7 +83,7 @@
         <button id="loss-btn">Prohrál jsem</button>
       </div>
 
-      <!-- Strategie hry -->
+      <!-- Strategie -->
       <div class="strategy">
         <h2>Strategie</h2>
         <div class="strategy-inputs">
@@ -96,4 +96,94 @@
         <p>Doporučení: <span id="strategy-advice">–</span></p>
       </div>
 
-      <div 
+      <div class="controls">
+        <button id="reset-btn">Zamíchat karty (Reset)</button>
+      </div>
+    </section>
+
+    <!-- Sekce Historie -->
+    <section id="history" class="section">
+      <h2>Historie kol</h2>
+      <table id="history-table">
+        <thead>
+          <tr>
+            <th>Čas</th>
+            <th>Running Count</th>
+            <th>True Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Řádky se generují dynamicky -->
+        </tbody>
+      </table>
+      <button id="clear-history">Vymazat historii</button>
+    </section>
+
+    <!-- Sekce Nastavení -->
+    <section id="settings" class="section">
+      <h2>Nastavení</h2>
+      <form id="settings-form">
+        <div class="form-group">
+          <label for="counting-system">Systém počítání:</label>
+          <select id="counting-system">
+            <option value="hi-lo">Hi-Lo</option>
+            <option value="ko">KO Count</option>
+            <option value="hi-opt">Hi-Opt</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="strategy-toggle">Strategická doporučení:</label>
+          <input type="checkbox" id="strategy-toggle" checked>
+        </div>
+        <div class="form-group">
+          <label for="bet-toggle">Doporučení sázek:</label>
+          <input type="checkbox" id="bet-toggle" checked>
+        </div>
+        <div class="form-group">
+          <label for="discreet-mode">Diskrétní mód:</label>
+          <input type="checkbox" id="discreet-mode">
+        </div>
+        <div class="form-group">
+          <label for="dark-mode">Tmavý režim:</label>
+          <input type="checkbox" id="dark-mode">
+        </div>
+        <!-- Finanční nastavení -->
+        <div class="form-group">
+          <label for="bank">Počáteční bank:</label>
+          <input type="number" id="bank" value="1000">
+        </div>
+        <div class="form-group">
+          <label for="target-profit">Cílová výhra:</label>
+          <input type="number" id="target-profit" value="200">
+        </div>
+        <div class="form-group">
+          <label for="loss-threshold">Ztrátový limit:</label>
+          <input type="number" id="loss-threshold" value="200">
+        </div>
+        <div class="form-group">
+          <label for="base-bet">Základní sázka:</label>
+          <input type="number" id="base-bet" value="10">
+        </div>
+        <button type="submit">Uložit nastavení</button>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 BJ Pomocník</p>
+  </footer>
+
+  <!-- Modální okno s nápovědou -->
+  <div id="help-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" id="close-help">&times;</span>
+      <h2>Nápověda – Jak na to?</h2>
+      <p>Tato aplikace ti pomáhá počítat karty při blackjacku a zároveň poskytuje doporučení pro sázení a strategii.</p>
+      <ul>
+        <li><strong>Počítání karet:</strong> Klikni na tlačítka s čísly pokaždé, když se rozdá karta. Aktualizují se <em>Running Count</em> a <em>True Count</em>.</li>
+        <li><strong>Balíčky:</strong> Uprav počet balíčků pomocí tlačítek „+“ a „–“. Správný počet ovlivní přesnost True Countu.</li>
+        <li><strong>Doporučení sázek:</strong> Na základě True Countu a tvého bank managementu ti aplikace poradí, kolik vsadit.</li>
+        <li><strong>Bank & Sázení:</strong> Nastav svůj počáteční bank, cílovou výhru, ztrátový limit a základní sázku. Aplikace ti potom ukáže aktuální bank, zisk a doporučenou sázku.</li>
+        <li><strong>Výsledek kola:</strong> Po skončení kola klikni na „Vyhrál jsem“ nebo „Prohrál jsem“ a zadej částku – tím se aktualizuje tvůj zisk.</li>
+        <li><strong>Strategie:</strong> Zadej své skóre a kartu dealera, a aplikace ti doporučí, jestli vzít další kartu nebo stát.</li>
+        <li
