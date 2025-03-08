@@ -1,4 +1,4 @@
-// Globální proměnné a nastavení
+// Globální proměnné a výchozí nastavení
 let runningCount = 0;
 let deckCount = 1;
 let cardHistory = [];
@@ -64,7 +64,7 @@ const strategyAdviceEl = document.getElementById('strategy-advice');
 navLinks.forEach(link => {
   link.addEventListener('click', e => {
     e.preventDefault();
-    // Speciální zpracování pro nápovědu – ta se zobrazuje jako modální okno (handled v help.js)
+    // Pro nápovědu řešíme zvlášť v help.js
     if(link.id === 'help-link'){
       return;
     }
@@ -77,7 +77,7 @@ navLinks.forEach(link => {
   });
 });
 
-// Aktualizace zobrazení
+// Funkce pro aktualizaci zobrazení
 function updateDisplay() {
   runningCountEl.textContent = runningCount;
   const trueCount = deckCount > 0 ? (runningCount / deckCount).toFixed(1) : 0;
@@ -140,7 +140,7 @@ decksDecreaseBtn.addEventListener('click', () => {
   }
 });
 
-// Reset (zamíchání karet) a uložení historie
+// Reset (zamíchat karty) a uložení historie
 resetBtn.addEventListener('click', () => {
   const timestamp = new Date().toLocaleTimeString();
   const trueCount = deckCount > 0 ? (runningCount / deckCount).toFixed(1) : 0;
