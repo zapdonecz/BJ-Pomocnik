@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BJ Pomocník</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>BJ Pomocník</h1>
+    <nav>
+      <ul>
+        <li><a href="#" data-section="game" class="nav-link active">Hra</a></li>
+        <li><a href="#" data-section="history" class="nav-link">Historie</a></li>
+        <li><a href="#" data-section="settings" class="nav-link">Nastavení</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HRA -->
+    <section id="game" class="section active">
+      <div class="counter-panel">
+        <div class="count-box">
+          <h2>Running Count</h2>
+          <p id="running-count">0</p>
+        </div>
+        <div class="count-box">
+          <h2>True Count</h2>
+          <p id="true-count">0</p>
+        </div>
+      </div>
+
+      <div class="card-input">
+        <h2>Zadej kartu</h2>
+        <div class="cards">
+          <button data-value="2">2</button>
+          <button data-value="3">3</button>
+          <button data-value="4">4</button>
+          <button data-value="5">5</button>
+          <button data-value="6">6</button>
+          <button data-value="7">7</button>
+          <button data-value="8">8</button>
+          <button data-value="9">9</button>
+          <button data-value="10">10</button>
+          <button data-value="J">J</button>
+          <button data-value="Q">Q</button>
+          <button data-value="K">K</button>
+          <button data-value="A">A</button>
+        </div>
+      </div>
+
+      <div class="deck-control">
+        <h2>Balíčky</h2>
+        <div>
+          <button id="decks-decrease">-</button>
+          <span id="deck-count">1</span> balíčeků
+          <button id="decks-increase">+</button>
+        </div>
+      </div>
+
+      <div class="bet-recommendation">
+        <h2>Doporučení sázky</h2>
+        <p id="bet-recommendation">-</p>
+      </div>
+
+      <!-- Bank a sázení -->
+      <div class="bank-info">
+        <h2>Bank a sázky</h2>
+        <p>Počáteční bank: <span id="initial-bank">-</span></p>
+        <p>Aktuální bank: <span id="current-bank">-</span></p>
+        <p>Aktuální zisk: <span id="current-profit">0</span></p>
+        <p>Doporučená sázka: <span id="recommended-bet">-</span></p>
+      </div>
+
+      <!-- Zadávání výsledku kola -->
+      <div class="round-result">
+        <h2>Výsledek kola</h2>
+        <button id="win-btn">Vyhrál jsem</button>
+        <button id="loss-btn">Prohrál jsem</button>
+      </div>
+
+      <!-- Strategie hry -->
+      <div class="strategy">
+        <h2>Strategie hry</h2>
+        <label for="player-score">Moje skóre:</label>
+        <input type="number" id="player-score" min="0" max="21">
+        <label for="dealer-card">Dealerova karta:</label>
+        <input type="number" id="dealer-card" min="2" max="11">
+        <button id="strategy-btn">Získat doporučení</button>
+        <p>Doporučení: <span id="strategy-advice">-</span></p>
+      </div>
+
+      <div class="controls">
+        <button id="reset-btn">Resetovat počítání</button>
+      </div>
+    </section>
+
+    <!-- HISTORIE -->
+    <section id="history" class="section">
+      <h2>Historie kol</h2>
+      <table id="history-table">
+        <thead>
+          <tr>
+            <th>Čas</th>
+            <th>Running Count</th>
+            <th>True Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Řádky se generují dynamicky -->
+        </tbody>
+      </table>
+      <button id="clear-history">Vymazat historii</button>
+    </section>
+
+    <!-- NASTAVENÍ -->
+    <section id="settings" class="section">
+      <h2>Nastavení</h2>
+      <form id="settings-form">
+        <div class="form-group">
+          <label for="counting-system">Systém počítání:</label>
+          <select id="counting-system">
+            <option value="hi-lo">Hi-Lo</option>
+            <option value="ko">KO Count</option>
+            <option value="hi-opt">Hi-Opt</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="strategy-toggle">Strategická doporučení:</label>
+          <input type="checkbox" id="strategy-toggle" checked>
+        </div>
+        <div class="form-group">
+          <label for="bet-toggle">Doporučení sázek:</label>
+          <input type="checkbox" id="bet-toggle" checked>
+        </div>
+        <div class="form-group">
+          <label for="discreet-mode">Diskrétní mód:</label>
+          <input type="checkbox" id="discreet-mode">
+        </div>
+        <div class="form-group">
+          <label for="dark-mode">Tmavý režim:</label>
+          <input type="checkbox" id="dark-mode">
+        </div>
+        <!-- Nová nastavení pro banku a sázky -->
+        <div class="form-group">
+          <label for="bank">Počáteční bank:</label>
+          <input type="number" id="bank" value="1000">
+        </div>
+        <div class="form-group">
+          <label for="target-profit">Očekávaná výhra:</label>
+          <input type="number" id="target-profit" value="200">
+        </div>
+        <div class="form-group">
+          <label for="loss-threshold">Ztrátový limit:</label>
+          <input type="number" id="loss-threshold" value="200">
+        </div>
+        <div class="form-group">
+          <label for="base-bet">Základní sázka:</label>
+          <input type="number" id="base-bet" value="10">
+        </div>
+        <button type="submit">Uložit nastavení</button>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 BJ Pomocník</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html>
