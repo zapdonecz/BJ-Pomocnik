@@ -1,9 +1,9 @@
-// Globální proměnné
+// Globální proměnné a nastavení
 let runningCount = 0;
 let deckCount = 1;
 let cardHistory = [];
 let currentProfit = 0; // kumulativní zisk
-let initialBank = 1000; // načte se ze settings
+let initialBank = 1000;
 let targetProfit = 200;
 let lossThreshold = 200;
 let baseBet = 10;
@@ -44,7 +44,7 @@ const clearHistoryBtn = document.getElementById('clear-history');
 const navLinks = document.querySelectorAll('.nav-link');
 const sections = document.querySelectorAll('.section');
 
-// Bank a sázení elementy
+// Bank & Sázení elementy
 const initialBankEl = document.getElementById('initial-bank');
 const currentBankEl = document.getElementById('current-bank');
 const currentProfitEl = document.getElementById('current-profit');
@@ -64,6 +64,10 @@ const strategyAdviceEl = document.getElementById('strategy-advice');
 navLinks.forEach(link => {
   link.addEventListener('click', e => {
     e.preventDefault();
+    // Speciální zpracování pro nápovědu – ta se zobrazuje jako modální okno (handled v help.js)
+    if(link.id === 'help-link'){
+      return;
+    }
     navLinks.forEach(lnk => lnk.classList.remove('active'));
     link.classList.add('active');
     const target = link.getAttribute('data-section');
@@ -73,21 +77,19 @@ navLinks.forEach(link => {
   });
 });
 
-// Funkce pro aktualizaci zobrazení
+// Aktualizace zobrazení
 function updateDisplay() {
   runningCountEl.textContent = runningCount;
   const trueCount = deckCount > 0 ? (runningCount / deckCount).toFixed(1) : 0;
   trueCountEl.textContent = trueCount;
 
-  // Doporučení sázek – základní logika
+  // Výpočet doporučené sázky
   let betRec = '-';
   if (betEnabled) {
-    // Jednoduchý výpočet: základní sázka * (1 + trueCount pokud je pozitivní)
     const multiplier = trueCount > 0 ? parseFloat(trueCount) + 1 : 1;
     let recBet = Math.round(baseBet * multiplier);
-    // Doporučená sázka nesmí překročit aktuální bank
     recBet = Math.min(recBet, getCurrentBank());
-    betRec = recBet + ' (x' + multiplier.toFixed(1) + ')';
+    betRec = `${recBet} (x${multiplier.toFixed(1)})`;
   }
   betRecommendationEl.textContent = betRec;
 
@@ -104,7 +106,6 @@ function updateDisplay() {
   initialBankEl.textContent = initialBank;
   currentBankEl.textContent = getCurrentBank();
   currentProfitEl.textContent = currentProfit;
-  // Aktualizace doporučené sázky v bank sekci
   recommendedBetEl.textContent = betRec;
 }
 
@@ -112,7 +113,7 @@ function getCurrentBank() {
   return initialBank + currentProfit;
 }
 
-// Zpracování stisku tlačítek pro karty
+// Zpracování tlačítek pro karty
 cardButtons.forEach(button => {
   button.addEventListener('click', () => {
     const card = button.getAttribute('data-value');
@@ -139,7 +140,7 @@ decksDecreaseBtn.addEventListener('click', () => {
   }
 });
 
-// Reset hry a uložení historie
+// Reset (zamíchání karet) a uložení historie
 resetBtn.addEventListener('click', () => {
   const timestamp = new Date().toLocaleTimeString();
   const trueCount = deckCount > 0 ? (runningCount / deckCount).toFixed(1) : 0;
@@ -150,7 +151,7 @@ resetBtn.addEventListener('click', () => {
   updateDisplay();
 });
 
-// Ukládání a načítání historie do localStorage
+// Ukládání a načítání historie
 function saveHistory() {
   localStorage.setItem('bjHistory', JSON.stringify(cardHistory));
 }
@@ -197,7 +198,7 @@ lossBtn.addEventListener('click', () => {
   }
 });
 
-// Kontrola dosažení cíle nebo ztrátového limitu
+// Kontrola dosažení cíle či ztrátového limitu
 function checkProfit() {
   if (currentProfit >= targetProfit) {
     alert("Gratuluji! Dosáhl jsi očekávané výhry.");
@@ -207,31 +208,24 @@ function checkProfit() {
   }
 }
 
-// Jednoduchá strategie – základní doporučení
+// Jednoduchá strategie – doporučení
 function getStrategyAdvice(playerScore, dealerCard) {
   let advice = '';
-  // Příklad jednoduchých pravidel:
   if (playerScore <= 11) {
     advice = "Ber další kartu (Hit)";
   } else if (playerScore >= 17) {
     advice = "Stůj (Stand)";
   } else {
-    // Pro skóre 12-16
-    if (dealerCard >= 7) {
-      advice = "Ber další kartu (Hit)";
-    } else {
-      advice = "Stůj (Stand)";
-    }
+    advice = dealerCard >= 7 ? "Ber další kartu (Hit)" : "Stůj (Stand)";
   }
   return advice;
 }
 
-// Zpracování strategie
 strategyBtn.addEventListener('click', () => {
   const playerScore = parseInt(playerScoreInput.value);
   const dealerCard = parseInt(dealerCardInput.value);
   if (isNaN(playerScore) || isNaN(dealerCard)) {
-    alert("Zadej prosím obě čísla.");
+    alert("Zadej prosím obě hodnoty správně.");
     return;
   }
   const advice = getStrategyAdvice(playerScore, dealerCard);
@@ -245,7 +239,7 @@ if ('serviceWorker' in navigator) {
     .catch(err => console.error('Chyba registrace SW:', err));
 }
 
-// Načtení uložené historie při startu
+// Inicializace: načtení historie a aktualizace zobrazení
 loadHistory();
 updateHistoryTable();
 updateDisplay();
