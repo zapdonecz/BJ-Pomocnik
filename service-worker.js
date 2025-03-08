@@ -1,10 +1,11 @@
-const CACHE_NAME = 'bj-pomocnik-cache-v3';
+const CACHE_NAME = 'bj-pomocnik-cache-v4';
 const urlsToCache = [
   '/',
   '/index.html',
   '/css/style.css',
   '/js/app.js',
   '/js/settings.js',
+  '/js/help.js',
   '/manifest.json'
 ];
 
