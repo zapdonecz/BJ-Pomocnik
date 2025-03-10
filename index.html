@@ -2,198 +2,1086 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BJ Pomocník</title>
+  <title>IP hlídač</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .days-green {
+      color: green;
+      font-weight: bold;
+    }
+    .days-orange {
+      color: orange;
+      font-weight: bold;
+    }
+    .days-red {
+      color: red;
+      font-weight: bold;
+    }
+    /* Tmavý režim */
+    body.dark-mode {
+      background: #333;
+      color: #eee;
+    }
+    body.dark-mode .card,
+    body.dark-mode .list-group-item,
+    body.dark-mode input,
+    body.dark-mode textarea,
+    body.dark-mode .modal-content {
+      background: #444;
+      color: #eee;
+      border-color: #555;
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>BJ Pomocník</h1>
-    <nav>
-      <ul>
-        <li><a href="javascript:void(0);" data-section="game" class="nav-link active">Hra</a></li>
-        <li><a href="javascript:void(0);" data-section="history" class="nav-link">Historie</a></li>
-        <li><a href="javascript:void(0);" data-section="settings" class="nav-link">Nastavení</a></li>
-        <li><a href="javascript:void(0);" id="help-link" class="nav-link">Nápověda</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <main>
-    <!-- Sekce Hra -->
-    <section id="game" class="section active">
-      <div class="counter-panel">
-        <div class="count-box">
-          <h2>Running Count</h2>
-          <p id="running-count">0</p>
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="mb-0">IP hlídač</h1>
+      <button class="btn btn-outline-secondary" onclick="toggleDarkMode()">Tmavý režim</button>
+    </div>
+    <p id="todayDate" class="mb-4"></p>
+    
+    <!-- Souhrn -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5>Přehled</h5>
+        <p id="summaryText"></p>
+      </div>
+    </div>
+    
+    <!-- Úkoly pro vyřízení -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5>Úkoly pro vyřízení</h5>
+        <div id="tasksList"></div>
+      </div>
+    </div>
+    
+    <!-- Kalendář -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5>Kalendář</h5>
+        <div id="calendarList"></div>
+        <form id="calendarForm" onsubmit="addCalendarEvent(event)">
+          <div class="mb-3">
+            <label for="eventTitle" class="form-label">Název události:</label>
+            <input type="text" class="form-control" id="eventTitle" required>
+          </div>
+          <div class="mb-3">
+            <label for="eventDate" class="form-label">Datum:</label>
+            <input type="date" class="form-control" id="eventDate" required>
+          </div>
+          <div class="mb-3">
+            <label for="eventDetails" class="form-label">Detail události:</label>
+            <textarea class="form-control" id="eventDetails"></textarea>
+          </div>
+          <button type="submit" class="btn btn-success">Přidat událost</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Export/Import a Nastavení -->
+    <div class="mb-4">
+      <button class="btn btn-primary" onclick="showExport()">Export dat</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Import dat</button>
+      <button class="btn btn-secondary" onclick="showSettings()">Nastavení</button>
+      <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+    </div>
+    
+    <!-- Formulář pro přidání nového klienta -->
+    <div class="card mb-4">
+      <div class="card-header">
+        Přidat nového klienta
+      </div>
+      <div class="card-body">
+        <form id="clientForm" onsubmit="addClient(event)">
+          <div class="mb-3">
+            <label for="clientName" class="form-label">Jméno klienta:</label>
+            <input type="text" class="form-control" id="clientName" required>
+          </div>
+          <div class="mb-3">
+            <label for="clientBirthdate" class="form-label">Datum narození:</label>
+            <input type="date" class="form-control" id="clientBirthdate" required>
+          </div>
+          <button type="submit" class="btn btn-success">Přidat klienta</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Vyhledávání a skrýt hotové položky -->
+    <div class="mb-3">
+      <input type="text" id="searchInput" class="form-control" placeholder="Hledat klienta podle jména" onkeyup="filterClients()">
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="hideCompleted" onchange="renderClients()">
+      <label class="form-check-label" for="hideCompleted">Skrýt hotové položky</label>
+    </div>
+    
+    <!-- Seznam klientů -->
+    <div id="clientsList"></div>
+    
+    <!-- Footer -->
+    <footer class="text-center mt-5">
+      <small>Program vytvořil Přemysl Pozděna, verze 1.0.1.</small>
+    </footer>
+  </div>
+  
+  <!-- Modály -->
+  <!-- Export modal -->
+  <div class="modal" tabindex="-1" id="exportModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Export dat</h5>
+          <button type="button" class="btn-close" onclick="hideExport()"></button>
         </div>
-        <div class="count-box">
-          <h2>True Count</h2>
-          <p id="true-count">0</p>
+        <div class="modal-body">
+          <textarea id="exportData" class="form-control" rows="10" readonly></textarea>
+          <p class="mt-2">Zkopíruj data nebo si je ulož do souboru.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideExport()">Zavřít</button>
         </div>
       </div>
-
-      <div class="card-input">
-        <h2>Zadej kartu</h2>
-        <div class="cards">
-          <button data-value="2">2</button>
-          <button data-value="3">3</button>
-          <button data-value="4">4</button>
-          <button data-value="5">5</button>
-          <button data-value="6">6</button>
-          <button data-value="7">7</button>
-          <button data-value="8">8</button>
-          <button data-value="9">9</button>
-          <button data-value="10">10</button>
-          <button data-value="J">J</button>
-          <button data-value="Q">Q</button>
-          <button data-value="K">K</button>
-          <button data-value="A">A</button>
-        </div>
-      </div>
-
-      <div class="deck-control">
-        <h2>Balíčky</h2>
-        <div class="deck-adjust">
-          <button id="decks-decrease">–</button>
-          <span id="deck-count">1</span>
-          <button id="decks-increase">+</button>
-        </div>
-      </div>
-
-      <div class="bet-recommendation">
-        <h2>Doporučení sázky</h2>
-        <p id="bet-recommendation">–</p>
-      </div>
-
-      <!-- Bank & Sázení -->
-      <div class="bank-info">
-        <h2>Bank & Sázení</h2>
-        <p>Počáteční bank: <span id="initial-bank">-</span></p>
-        <p>Aktuální bank: <span id="current-bank">-</span></p>
-        <p>Aktuální zisk: <span id="current-profit">0</span></p>
-        <p>Doporučená sázka: <span id="recommended-bet">-</span></p>
-      </div>
-
-      <!-- Zadávání výsledku kola -->
-      <div class="round-result">
-        <h2>Výsledek kola</h2>
-        <button id="win-btn">Vyhrál jsem</button>
-        <button id="loss-btn">Prohrál jsem</button>
-      </div>
-
-      <!-- Strategie -->
-      <div class="strategy">
-        <h2>Strategie</h2>
-        <div class="strategy-inputs">
-          <label for="player-score">Moje skóre:</label>
-          <input type="number" id="player-score" min="0" max="21" placeholder="např. 16">
-          <label for="dealer-card">Dealerova karta:</label>
-          <input type="number" id="dealer-card" min="2" max="11" placeholder="např. 7">
-        </div>
-        <button id="strategy-btn">Zobraz doporučení</button>
-        <p>Doporučení: <span id="strategy-advice">–</span></p>
-      </div>
-
-      <div class="controls">
-        <button id="reset-btn">Zamíchat karty (Reset)</button>
-      </div>
-    </section>
-
-    <!-- Sekce Historie -->
-    <section id="history" class="section">
-      <h2>Historie kol</h2>
-      <table id="history-table">
-        <thead>
-          <tr>
-            <th>Čas</th>
-            <th>Running Count</th>
-            <th>True Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Řádky se generují dynamicky -->
-        </tbody>
-      </table>
-      <button id="clear-history">Vymazat historii</button>
-    </section>
-
-    <!-- Sekce Nastavení -->
-    <section id="settings" class="section">
-      <h2>Nastavení</h2>
-      <form id="settings-form">
-        <div class="form-group">
-          <label for="counting-system">Systém počítání:</label>
-          <select id="counting-system">
-            <option value="hi-lo">Hi-Lo</option>
-            <option value="ko">KO Count</option>
-            <option value="hi-opt">Hi-Opt</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="strategy-toggle">Strategická doporučení:</label>
-          <input type="checkbox" id="strategy-toggle" checked>
-        </div>
-        <div class="form-group">
-          <label for="bet-toggle">Doporučení sázek:</label>
-          <input type="checkbox" id="bet-toggle" checked>
-        </div>
-        <div class="form-group">
-          <label for="discreet-mode">Diskrétní mód:</label>
-          <input type="checkbox" id="discreet-mode">
-        </div>
-        <div class="form-group">
-          <label for="dark-mode">Tmavý režim:</label>
-          <input type="checkbox" id="dark-mode">
-        </div>
-        <!-- Finanční nastavení -->
-        <div class="form-group">
-          <label for="bank">Počáteční bank:</label>
-          <input type="number" id="bank" value="1000">
-        </div>
-        <div class="form-group">
-          <label for="target-profit">Cílová výhra:</label>
-          <input type="number" id="target-profit" value="200">
-        </div>
-        <div class="form-group">
-          <label for="loss-threshold">Ztrátový limit:</label>
-          <input type="number" id="loss-threshold" value="200">
-        </div>
-        <div class="form-group">
-          <label for="base-bet">Základní sázka:</label>
-          <input type="number" id="base-bet" value="10">
-        </div>
-        <button type="submit">Uložit nastavení</button>
-      </form>
-    </section>
-  </main>
-
-  <footer>
-    <p>© 2025 BJ Pomocník</p>
-  </footer>
-
-  <!-- Modální okno s nápovědou -->
-  <div id="help-modal" class="modal">
-    <div class="modal-content">
-      <span class="close-btn" id="close-help">&times;</span>
-      <h2>Nápověda – Jak na to?</h2>
-      <p>Tato aplikace ti pomáhá počítat karty při blackjacku a zároveň poskytuje doporučení pro sázení a strategii.</p>
-      <ul>
-        <li><strong>Počítání karet:</strong> Klikni na tlačítka s čísly pokaždé, když se rozdá karta. Aktualizují se <em>Running Count</em> a <em>True Count</em>.</li>
-        <li><strong>Balíčky:</strong> Uprav počet balíčků pomocí tlačítek „+“ a „–“. Správný počet ovlivní přesnost True Countu.</li>
-        <li><strong>Doporučení sázek:</strong> Na základě True Countu a tvého bank managementu ti aplikace poradí, kolik vsadit.</li>
-        <li><strong>Bank & Sázení:</strong> Nastav svůj počáteční bank, cílovou výhru, ztrátový limit a základní sázku. Aplikace ti potom ukáže aktuální bank, zisk a doporučenou sázku.</li>
-        <li><strong>Výsledek kola:</strong> Po skončení kola klikni na „Vyhrál jsem“ nebo „Prohrál jsem“ a zadej částku – tím se aktualizuje tvůj zisk.</li>
-        <li><strong>Strategie:</strong> Zadej své skóre a kartu dealera, a aplikace ti doporučí, jestli vzít další kartu nebo stát.</li>
-        <li><strong>Zamíchat karty:</strong> Tlačítko „Zamíchat karty (Reset)“ uloží aktuální kolo do historie a resetuje počítání.</li>
-      </ul>
-      <p>Sleduj aktuální hodnoty, doporučení a svůj bank – aplikace ti pomůže učinit správná rozhodnutí během hry.</p>
     </div>
   </div>
-
-  <script src="js/app.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/help.js"></script>
+  
+  <!-- Nastavení modal -->
+  <div class="modal" tabindex="-1" id="settingsModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Nastavení</h5>
+          <button type="button" class="btn-close" onclick="hideSettings()"></button>
+        </div>
+        <div class="modal-body">
+          <form id="settingsForm" onsubmit="saveSettingsForm(event)">
+            <div class="mb-3">
+              <label for="settingsEvalThreshold" class="form-label">Prahová hodnota pro hodnocení (dny):</label>
+              <input type="number" class="form-control" id="settingsEvalThreshold" min="1" required>
+            </div>
+            <div class="mb-3">
+              <label for="settingsPlanThreshold" class="form-label">Prahová hodnota pro plány (dny):</label>
+              <input type="number" class="form-control" id="settingsPlanThreshold" min="1" required>
+            </div>
+            <div class="mb-3">
+              <label for="settingsStepThreshold" class="form-label">Prahová hodnota pro kroky (dny):</label>
+              <input type="number" class="form-control" id="settingsStepThreshold" min="1" required>
+            </div>
+            <div class="mb-3">
+              <label for="settingsContractThreshold" class="form-label">Prahová hodnota pro smlouvy (dny):</label>
+              <input type="number" class="form-control" id="settingsContractThreshold" min="1" required>
+            </div>
+            <div class="mb-3">
+              <label for="settingsCalendarThreshold" class="form-label">Prahová hodnota pro kalendář (dny):</label>
+              <input type="number" class="form-control" id="settingsCalendarThreshold" min="1" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Uložit nastavení</button>
+            <button type="button" class="btn btn-danger" onclick="resetData()">Resetovat data</button>
+            <button type="button" class="btn btn-warning" onclick="clearCompleted()">Vyčistit hotové položky</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Update modal -->
+  <div class="modal" tabindex="-1" id="updateModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Aktualizace k dispozici</h5>
+          <button type="button" class="btn-close" onclick="hideUpdateModal()"></button>
+        </div>
+        <div class="modal-body">
+          <p>Nová verze: 1.0.1</p>
+          <p>Změny:</p>
+          <ul>
+            <li>Přidáno barevné označení úkolů</li>
+            <li>Přidána notifikace o nové verzi aplikace</li>
+            <li>Vylepšen tmavý režim (světlé písmo)</li>
+            <li>Přidán kalendář pro schůzky a poznámky</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideUpdateModal()">Zrušit</button>
+          <button type="button" class="btn btn-primary" onclick="updateApp()">Aktualizovat</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Editace plánu modal -->
+  <div class="modal" tabindex="-1" id="editPlanModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Upravit plán</h5>
+          <button type="button" class="btn-close" onclick="hideEditPlanModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editPlanForm" onsubmit="savePlanEdits(event)">
+            <div class="mb-3">
+              <label for="editPlanName" class="form-label">Název plánu:</label>
+              <input type="text" class="form-control" id="editPlanName" required>
+            </div>
+            <div class="mb-3">
+              <label for="editPlanNotes" class="form-label">Poznámky:</label>
+              <textarea class="form-control" id="editPlanNotes"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="editPlanExpiration" class="form-label">Platnost do:</label>
+              <input type="date" class="form-control" id="editPlanExpiration" required>
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="editPlanCompleted">
+              <label class="form-check-label" for="editPlanCompleted">Hotový</label>
+            </div>
+            <input type="hidden" id="editPlanClientId">
+            <input type="hidden" id="editPlanId">
+            <button type="submit" class="btn btn-primary">Uložit změny</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Editace kroku modal -->
+  <div class="modal" tabindex="-1" id="editStepModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Upravit krok</h5>
+          <button type="button" class="btn-close" onclick="hideEditStepModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editStepForm" onsubmit="saveStepEdits(event)">
+            <div class="mb-3">
+              <label for="editStepDescription" class="form-label">Popis kroku:</label>
+              <input type="text" class="form-control" id="editStepDescription" required>
+            </div>
+            <div class="mb-3">
+              <label for="editStepDate" class="form-label">Datum:</label>
+              <input type="date" class="form-control" id="editStepDate" required>
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="editStepCompleted">
+              <label class="form-check-label" for="editStepCompleted">Hotový</label>
+            </div>
+            <input type="hidden" id="editStepClientId">
+            <input type="hidden" id="editStepPlanId">
+            <input type="hidden" id="editStepId">
+            <button type="submit" class="btn btn-primary">Uložit změny</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Editace smlouvy modal -->
+  <div class="modal" tabindex="-1" id="editContractModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Upravit smlouvu</h5>
+          <button type="button" class="btn-close" onclick="hideEditContractModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editContractForm" onsubmit="saveContractEdits(event)">
+            <div class="mb-3">
+              <label for="editContractStart" class="form-label">Datum smlouvy (začátek):</label>
+              <input type="date" class="form-control" id="editContractStart" required>
+            </div>
+            <div class="mb-3">
+              <label for="editContractExpiration" class="form-label">Platnost do:</label>
+              <input type="date" class="form-control" id="editContractExpiration" required>
+            </div>
+            <input type="hidden" id="editContractClientId">
+            <button type="submit" class="btn btn-primary">Uložit smlouvu</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    let clients = [];
+    let calendarEvents = [];
+    
+    const defaultSettings = {
+      evalThreshold: 7,
+      planThreshold: 7,
+      stepThreshold: 7,
+      contractThreshold: 60,
+      calendarThreshold: 3
+    };
+    let settings = {};
+    const appVersion = "1.0.1";
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      loadCalendarEvents();
+      loadSettings();
+      updateToday();
+      renderClients();
+      renderSummary();
+      renderTasks();
+      renderCalendar();
+      loadDarkMode();
+      registerServiceWorker();
+    });
+    
+    function updateToday() {
+      const today = new Date();
+      document.getElementById('todayDate').textContent = 'Dnes je: ' + today.toLocaleDateString();
+    }
+    
+    // Export dat
+    function showExport() {
+      const exportModal = new bootstrap.Modal(document.getElementById('exportModal'));
+      document.getElementById('exportData').value = JSON.stringify({ clients, calendarEvents, settings }, null, 2);
+      exportModal.show();
+    }
+    function hideExport() {
+      const modalEl = document.getElementById('exportModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+    }
+    
+    function importData(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            if (importedData.clients && Array.isArray(importedData.clients)) {
+              clients = importedData.clients;
+              clients.forEach(client => {
+                if (typeof client.detailsVisible === 'undefined') client.detailsVisible = false;
+              });
+            }
+            if (importedData.calendarEvents && Array.isArray(importedData.calendarEvents)) {
+              calendarEvents = importedData.calendarEvents;
+            }
+            if (importedData.settings) {
+              settings = importedData.settings;
+            }
+            saveData();
+            saveCalendarEvents();
+            renderClients();
+            renderSummary();
+            renderTasks();
+            renderCalendar();
+            alert('Data byla úspěšně importována.');
+          } catch (error) {
+            alert('Chyba při importu dat.');
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+    
+    function loadData() {
+      const data = localStorage.getItem('ipHlidacData');
+      if (data) {
+        clients = JSON.parse(data);
+        clients.forEach(client => {
+          if (typeof client.detailsVisible === 'undefined') {
+            client.detailsVisible = false;
+          }
+        });
+      }
+    }
+    
+    function saveData() {
+      localStorage.setItem('ipHlidacData', JSON.stringify(clients));
+    }
+    
+    function loadCalendarEvents() {
+      const data = localStorage.getItem('ipHlidacCalendar');
+      if (data) {
+        calendarEvents = JSON.parse(data);
+      }
+    }
+    
+    function saveCalendarEvents() {
+      localStorage.setItem('ipHlidacCalendar', JSON.stringify(calendarEvents));
+    }
+    
+    function loadSettings() {
+      const data = localStorage.getItem('ipHlidacSettings');
+      if (data) {
+        settings = JSON.parse(data);
+      } else {
+        settings = { ...defaultSettings };
+      }
+    }
+    
+    function saveSettings() {
+      localStorage.setItem('ipHlidacSettings', JSON.stringify(settings));
+    }
+    
+    function renderSummary() {
+      let total = clients.length;
+      let overdueEval = 0;
+      let expiringPlans = 0;
+      let expiringContracts = 0;
+      clients.forEach(client => {
+        if (client.lastEvaluation) {
+          const evalInfo = calculateEvalDays(client.lastEvaluation);
+          if (evalInfo.daysLeft < 0) overdueEval++;
+        } else {
+          overdueEval++;
+        }
+        client.plans && client.plans.forEach(plan => {
+          const daysLeft = calculateDaysLeft(plan.expirationDate);
+          if (daysLeft <= settings.planThreshold) expiringPlans++;
+        });
+        if (client.contractExpiration) {
+          const contractDaysLeft = calculateDaysLeft(client.contractExpiration);
+          if (contractDaysLeft <= settings.contractThreshold) expiringContracts++;
+        }
+      });
+      document.getElementById('summaryText').textContent = `Celkem klientů: ${total} | Hodnocení k aktualizaci: ${overdueEval} | Plány k aktualizaci: ${expiringPlans} | Smlouvy k obnovení: ${expiringContracts}`;
+    }
+    
+    function renderTasks() {
+      let tasks = [];
+      // Úkoly z klientů
+      clients.forEach(client => {
+        if (client.lastEvaluation) {
+          const evalInfo = calculateEvalDays(client.lastEvaluation);
+          if (evalInfo.daysLeft <= settings.evalThreshold) {
+            tasks.push(`Hodnocení u klienta ${client.name} končí za <span class="${getDaysClass(evalInfo.daysLeft)}">${evalInfo.daysLeft} dní</span> (${evalInfo.daysLeft < 0 ? "POZDE" : "blízko"})`);
+          }
+        } else {
+          tasks.push(`U klienta ${client.name} chybí půlroční hodnocení`);
+        }
+        client.plans && client.plans.forEach(plan => {
+          const daysLeft = calculateDaysLeft(plan.expirationDate);
+          if (!plan.completed && daysLeft <= settings.planThreshold) {
+            tasks.push(`Plán "${plan.name}" u klienta ${client.name} končí za <span class="${getDaysClass(daysLeft)}">${daysLeft} dní</span> (${daysLeft < 0 ? "POZDE" : "brzy"})`);
+          }
+          plan.steps && plan.steps.forEach(step => {
+            if (!step.completed) {
+              const daysLeftStep = calculateDaysLeft(step.date);
+              if (daysLeftStep <= settings.stepThreshold) {
+                tasks.push(`Krok "${step.description}" u plánu "${plan.name}" (klient ${client.name}) končí za <span class="${getDaysClass(daysLeftStep)}">${daysLeftStep} dní</span> (${daysLeftStep < 0 ? "POZDE" : "blízko"})`);
+              }
+            }
+          });
+        });
+        if (client.contractExpiration) {
+          const contractDaysLeft = calculateDaysLeft(client.contractExpiration);
+          if (contractDaysLeft <= settings.contractThreshold) {
+            tasks.push(`Smlouva u klienta ${client.name} končí za <span class="${getDaysClass(contractDaysLeft)}">${contractDaysLeft} dní</span> (${contractDaysLeft < 0 ? "VYPRŠELA" : "brzy"})`);
+          }
+        } else {
+          tasks.push(`U klienta ${client.name} není nastavena smlouva`);
+        }
+      });
+      // Úkoly z kalendáře
+      calendarEvents.forEach(event => {
+        const daysLeft = calculateDaysLeft(event.date);
+        if (daysLeft <= settings.calendarThreshold) {
+          tasks.push(`Událost "${event.title}" končí za <span class="${getDaysClass(daysLeft)}">${daysLeft} dní</span> (${daysLeft < 0 ? "POZDE" : "blízko"})`);
+        }
+      });
+      let html = "";
+      if (tasks.length === 0) {
+        html = "<p>Žádné úkoly k vyřízení.</p>";
+      } else {
+        html = "<ul class='list-group'>";
+        tasks.forEach(task => {
+          html += `<li class="list-group-item">${task}</li>`;
+        });
+        html += "</ul>";
+      }
+      document.getElementById('tasksList').innerHTML = html;
+    }
+    
+    function renderCalendar() {
+      let html = "";
+      if (calendarEvents.length === 0) {
+        html = "<p>Žádné události zatím nebyly přidány.</p>";
+      } else {
+        html = "<ul class='list-group'>";
+        calendarEvents.forEach(event => {
+          html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                     ${event.title} - ${new Date(event.date).toLocaleDateString()}
+                     <button class="btn btn-sm btn-danger" onclick="deleteCalendarEvent('${event.id}')">X</button>
+                   </li>`;
+        });
+        html += "</ul>";
+      }
+      document.getElementById('calendarList').innerHTML = html;
+    }
+    
+    function addCalendarEvent(e) {
+      e.preventDefault();
+      const title = document.getElementById('eventTitle').value.trim();
+      const date = document.getElementById('eventDate').value;
+      const details = document.getElementById('eventDetails').value.trim();
+      if (title && date) {
+        const newEvent = {
+          id: '_' + Math.random().toString(36).substr(2, 9),
+          title: title,
+          date: date,
+          details: details
+        };
+        calendarEvents.push(newEvent);
+        saveCalendarEvents();
+        renderCalendar();
+        renderTasks();
+        document.getElementById('calendarForm').reset();
+      }
+    }
+    
+    function deleteCalendarEvent(eventId) {
+      calendarEvents = calendarEvents.filter(ev => ev.id !== eventId);
+      saveCalendarEvents();
+      renderCalendar();
+      renderTasks();
+    }
+    
+    function addClient(e) {
+      e.preventDefault();
+      const name = document.getElementById('clientName').value.trim();
+      const birthdate = document.getElementById('clientBirthdate').value;
+      if (name && birthdate) {
+        const newClient = {
+          id: '_' + Math.random().toString(36).substr(2, 9),
+          name: name,
+          birthdate: birthdate,
+          lastEvaluation: null,
+          contractStart: null,
+          contractExpiration: null,
+          detailsVisible: false,
+          plans: []
+        };
+        clients.push(newClient);
+        saveData();
+        renderClients();
+        renderSummary();
+        renderTasks();
+        document.getElementById('clientForm').reset();
+      }
+    }
+    
+    function deleteClient(clientId) {
+      if (confirm('Opravdu chceš odstranit tohoto klienta?')) {
+        clients = clients.filter(client => client.id !== clientId);
+        saveData();
+        renderClients();
+        renderSummary();
+        renderTasks();
+      }
+    }
+    
+    function updateEvaluation(e, clientId) {
+      e.preventDefault();
+      const input = document.getElementById('eval_' + clientId);
+      const client = clients.find(c => c.id === clientId);
+      if (client && input.value) {
+        client.lastEvaluation = input.value;
+        saveData();
+        renderClients();
+        renderSummary();
+        renderTasks();
+        input.value = "";
+      }
+    }
+    
+    function addPlan(e, clientId) {
+      e.preventDefault();
+      const form = e.target;
+      const planName = form.elements['planName'].value.trim();
+      const planNotes = form.elements['planNotes'].value.trim();
+      const planExpiration = form.elements['planExpiration'].value;
+      if (planName && planExpiration) {
+        const client = clients.find(c => c.id === clientId);
+        if (client) {
+          const newPlan = {
+            id: '_' + Math.random().toString(36).substr(2, 9),
+            name: planName,
+            notes: planNotes,
+            expirationDate: planExpiration,
+            completed: false,
+            steps: []
+          };
+          client.plans.push(newPlan);
+          saveData();
+          renderClients();
+          renderSummary();
+          renderTasks();
+          form.reset();
+        }
+      }
+    }
+    
+    function deletePlan(clientId, planId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        client.plans = client.plans.filter(plan => plan.id !== planId);
+        saveData();
+        renderClients();
+        renderSummary();
+        renderTasks();
+      }
+    }
+    
+    function addStep(e, clientId, planId) {
+      e.preventDefault();
+      const form = e.target;
+      const stepDesc = form.elements['stepDesc'].value.trim();
+      const stepDate = form.elements['stepDate'].value;
+      if (stepDesc && stepDate) {
+        const client = clients.find(c => c.id === clientId);
+        if (client) {
+          const plan = client.plans.find(p => p.id === planId);
+          if (plan) {
+            const newStep = {
+              id: '_' + Math.random().toString(36).substr(2, 9),
+              description: stepDesc,
+              date: stepDate,
+              completed: false
+            };
+            plan.steps.push(newStep);
+            saveData();
+            renderClients();
+            renderSummary();
+            renderTasks();
+            form.reset();
+          }
+        }
+      }
+    }
+    
+    function deleteStep(clientId, planId, stepId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        const plan = client.plans.find(p => p.id === planId);
+        if (plan) {
+          plan.steps = plan.steps.filter(step => step.id !== stepId);
+          saveData();
+          renderClients();
+          renderSummary();
+          renderTasks();
+        }
+      }
+    }
+    
+    function togglePlanCompletion(clientId, planId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        const plan = client.plans.find(p => p.id === planId);
+        if (plan) {
+          plan.completed = !plan.completed;
+          saveData();
+          renderClients();
+          renderSummary();
+          renderTasks();
+        }
+      }
+    }
+    
+    function toggleStepCompletion(clientId, planId, stepId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        const plan = client.plans.find(p => p.id === planId);
+        if (plan) {
+          const step = plan.steps.find(s => s.id === stepId);
+          if (step) {
+            step.completed = !step.completed;
+            saveData();
+            renderClients();
+            renderSummary();
+            renderTasks();
+          }
+        }
+      }
+    }
+    
+    function toggleClientDetails(clientId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        client.detailsVisible = !client.detailsVisible;
+        saveData();
+        renderClients();
+      }
+    }
+    
+    function filterClients() {
+      renderClients();
+    }
+    
+    function renderClients() {
+      const container = document.getElementById('clientsList');
+      container.innerHTML = "";
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+      const hideCompleted = document.getElementById('hideCompleted').checked;
+      if (clients.length === 0) {
+        container.innerHTML = "<p>Žádní klienti zatím nejsou přidáni.</p>";
+        return;
+      }
+      clients.forEach(client => {
+        if (searchQuery && !client.name.toLowerCase().includes(searchQuery)) return;
+        let clientHTML = `
+          <div class="card mb-4">
+            <div class="card-header">
+              <strong>${client.name}</strong> (Narozen: ${new Date(client.birthdate).toLocaleDateString()})
+              <div class="float-end">
+                <button class="btn btn-sm btn-danger" onclick="deleteClient('${client.id}')">Odstranit klienta</button>
+                <button class="btn btn-sm btn-info" onclick="toggleClientDetails('${client.id}')">
+                  ${client.detailsVisible ? 'Skrýt detaily' : 'Zobrazit detaily'}
+                </button>
+              </div>
+            </div>
+            <div class="collapse ${client.detailsVisible ? 'show' : ''}" id="collapseClient_${client.id}">
+              <div class="card-body">
+                <div class="mb-3">
+                  <h6>Půlroční hodnocení:</h6>`;
+        if (client.lastEvaluation) {
+          const evalInfo = calculateEvalDays(client.lastEvaluation);
+          clientHTML += `<p>Poslední: ${new Date(client.lastEvaluation).toLocaleDateString()} | Další: ${evalInfo.nextEvaluation.toLocaleDateString()} (<span class="${getDaysClass(evalInfo.daysLeft)}">${evalInfo.daysLeft} dní</span>)</p>`;
+        } else {
+          clientHTML += `<p>Zatím nebylo provedeno žádné hodnocení.</p>`;
+        }
+        clientHTML += `
+                <form class="mb-3" onsubmit="updateEvaluation(event, '${client.id}')">
+                  <div class="mb-2">
+                    <input type="date" id="eval_${client.id}" class="form-control" required>
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-primary">Nastavit/Aktualizovat hodnocení</button>
+                </form>
+                <div class="mb-3">
+                  <h6>Smlouva:</h6>`;
+        if (client.contractStart && client.contractExpiration) {
+          clientHTML += `<p>Od: ${new Date(client.contractStart).toLocaleDateString()} do: ${new Date(client.contractExpiration).toLocaleDateString()}</p>
+                         <button class="btn btn-sm btn-primary" onclick="editContract('${client.id}')">Upravit smlouvu</button>`;
+        } else {
+          clientHTML += `<p>Smlouva není nastavena.</p>
+                         <button class="btn btn-sm btn-primary" onclick="editContract('${client.id}')">Přidat smlouvu</button>`;
+        }
+        clientHTML += `
+                </div>
+                <div class="mb-3">
+                  <h5>Individuální plány:</h5>`;
+        if (!client.plans || client.plans.length === 0) {
+          clientHTML += `<p>Žádné plány zatím nebyly přidány.</p>`;
+        } else {
+          client.plans.forEach(plan => {
+            if (hideCompleted && plan.completed) return;
+            const daysLeft = calculateDaysLeft(plan.expirationDate);
+            clientHTML += `
+              <div class="card mb-3">
+                <div class="card-header">
+                  <strong>${plan.name}</strong> - Platnost do: ${new Date(plan.expirationDate).toLocaleDateString()} (<span class="${getDaysClass(daysLeft)}">${daysLeft} dní</span>) ${plan.completed ? '<span class="badge bg-success">Hotový</span>' : ''}
+                  <div class="float-end">
+                    <button class="btn btn-sm btn-warning" onclick="togglePlanCompletion('${client.id}', '${plan.id}')">${plan.completed ? 'Zrušit hotovo' : 'Označit jako hotový'}</button>
+                    <button class="btn btn-sm btn-secondary" onclick="editPlan('${client.id}', '${plan.id}')">Upravit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePlan('${client.id}', '${plan.id}')">Odstranit</button>
+                    <button class="btn btn-sm btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePlan_${client.id}_${plan.id}" aria-expanded="false" aria-controls="collapsePlan_${client.id}_${plan.id}">Zobrazit kroky</button>
+                  </div>
+                </div>
+                <div class="collapse" id="collapsePlan_${client.id}_${plan.id}">
+                  <div class="card-body">
+                    <p><strong>Poznámky:</strong> ${plan.notes || 'žádné'}</p>`;
+            if (!plan.steps || plan.steps.length === 0) {
+              clientHTML += `<p>Žádné kroky ještě nebyly přidány.</p>`;
+            } else {
+              clientHTML += `<ul class="list-group mb-2">`;
+              plan.steps.forEach(step => {
+                if (hideCompleted && step.completed) return;
+                clientHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                                ${step.description} - ${new Date(step.date).toLocaleDateString()} ${step.completed ? '<span class="badge bg-success">Hotový</span>' : ''}
+                                <div>
+                                  <button class="btn btn-sm btn-warning" onclick="toggleStepCompletion('${client.id}', '${plan.id}', '${step.id}')">${step.completed ? 'Zrušit hotovo' : 'Označit jako hotový'}</button>
+                                  <button class="btn btn-sm btn-secondary" onclick="editStep('${client.id}', '${plan.id}', '${step.id}')">Upravit</button>
+                                  <button class="btn btn-sm btn-danger" onclick="deleteStep('${client.id}', '${plan.id}', '${step.id}')">X</button>
+                                </div>
+                              </li>`;
+              });
+              clientHTML += `</ul>`;
+            }
+            clientHTML += `
+                    <form onsubmit="addStep(event, '${client.id}', '${plan.id}')">
+                      <div class="mb-2">
+                        <input type="text" name="stepDesc" class="form-control" placeholder="Popis kroku" required>
+                      </div>
+                      <div class="mb-2">
+                        <input type="date" name="stepDate" class="form-control" required>
+                      </div>
+                      <button type="submit" class="btn btn-sm btn-success">Přidat krok</button>
+                    </form>
+                  </div>
+                </div>`;
+          });
+        }
+        clientHTML += `
+                <div class="mb-3">
+                  <h5>Přidat individuální plán:</h5>
+                  <form onsubmit="addPlan(event, '${client.id}')">
+                    <div class="mb-2">
+                      <input type="text" name="planName" class="form-control" placeholder="Název plánu" required>
+                    </div>
+                    <div class="mb-2">
+                      <textarea name="planNotes" class="form-control" placeholder="Poznámky (volitelné)"></textarea>
+                    </div>
+                    <div class="mb-2">
+                      <label>Platnost do:</label>
+                      <input type="date" name="planExpiration" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-success">Přidat plán</button>
+                  </form>
+                </div>
+              </div>
+            </div>`;
+        container.innerHTML += clientHTML;
+      });
+    }
+    
+    function editPlan(clientId, planId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        const plan = client.plans.find(p => p.id === planId);
+        if (plan) {
+          document.getElementById('editPlanName').value = plan.name;
+          document.getElementById('editPlanNotes').value = plan.notes;
+          document.getElementById('editPlanExpiration').value = plan.expirationDate;
+          document.getElementById('editPlanCompleted').checked = plan.completed;
+          document.getElementById('editPlanClientId').value = clientId;
+          document.getElementById('editPlanId').value = planId;
+          const modal = new bootstrap.Modal(document.getElementById('editPlanModal'));
+          modal.show();
+        }
+      }
+    }
+    
+    function savePlanEdits(e) {
+      e.preventDefault();
+      const clientId = document.getElementById('editPlanClientId').value;
+      const planId = document.getElementById('editPlanId').value;
+      const name = document.getElementById('editPlanName').value.trim();
+      const notes = document.getElementById('editPlanNotes').value.trim();
+      const expiration = document.getElementById('editPlanExpiration').value;
+      const completed = document.getElementById('editPlanCompleted').checked;
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        const plan = client.plans.find(p => p.id === planId);
+        if (plan) {
+          plan.name = name;
+          plan.notes = notes;
+          plan.expirationDate = expiration;
+          plan.completed = completed;
+          saveData();
+          renderClients();
+          renderSummary();
+          renderTasks();
+        }
+      }
+      hideEditPlanModal();
+    }
+    
+    function hideEditPlanModal() {
+      const modalEl = document.getElementById('editPlanModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+    }
+    
+    function editStep(clientId, planId, stepId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        const plan = client.plans.find(p => p.id === planId);
+        if (plan) {
+          const step = plan.steps.find(s => s.id === stepId);
+          if (step) {
+            document.getElementById('editStepDescription').value = step.description;
+            document.getElementById('editStepDate').value = step.date;
+            document.getElementById('editStepCompleted').checked = step.completed;
+            document.getElementById('editStepClientId').value = clientId;
+            document.getElementById('editStepPlanId').value = planId;
+            document.getElementById('editStepId').value = stepId;
+            const modal = new bootstrap.Modal(document.getElementById('editStepModal'));
+            modal.show();
+          }
+        }
+      }
+    }
+    
+    function saveStepEdits(e) {
+      e.preventDefault();
+      const clientId = document.getElementById('editStepClientId').value;
+      const planId = document.getElementById('editStepPlanId').value;
+      const stepId = document.getElementById('editStepId').value;
+      const description = document.getElementById('editStepDescription').value.trim();
+      const date = document.getElementById('editStepDate').value;
+      const completed = document.getElementById('editStepCompleted').checked;
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        const plan = client.plans.find(p => p.id === planId);
+        if (plan) {
+          const step = plan.steps.find(s => s.id === stepId);
+          if (step) {
+            step.description = description;
+            step.date = date;
+            step.completed = completed;
+            saveData();
+            renderClients();
+            renderSummary();
+            renderTasks();
+          }
+        }
+      }
+      hideEditStepModal();
+    }
+    
+    function hideEditStepModal() {
+      const modalEl = document.getElementById('editStepModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+    }
+    
+    function editContract(clientId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        document.getElementById('editContractClientId').value = clientId;
+        document.getElementById('editContractStart').value = client.contractStart || "";
+        document.getElementById('editContractExpiration').value = client.contractExpiration || "";
+        const modal = new bootstrap.Modal(document.getElementById('editContractModal'));
+        modal.show();
+      }
+    }
+    
+    function saveContractEdits(e) {
+      e.preventDefault();
+      const clientId = document.getElementById('editContractClientId').value;
+      const start = document.getElementById('editContractStart').value;
+      const expiration = document.getElementById('editContractExpiration').value;
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        client.contractStart = start;
+        client.contractExpiration = expiration;
+        saveData();
+        renderClients();
+        renderSummary();
+        renderTasks();
+      }
+      hideEditContractModal();
+    }
+    
+    function hideEditContractModal() {
+      const modalEl = document.getElementById('editContractModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+    }
+    
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => {
+            reg.onupdatefound = () => {
+              const newWorker = reg.installing;
+              newWorker.onstatechange = () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  showUpdateModal();
+                }
+              }
+            };
+          })
+          .catch(err => console.error('Chyba při registraci Service Workeru:', err));
+      }
+    }
+    
+    function showUpdateModal() {
+      const modal = new bootstrap.Modal(document.getElementById('updateModal'));
+      modal.show();
+    }
+    
+    function hideUpdateModal() {
+      const modalEl = document.getElementById('updateModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+    }
+    
+    function updateApp() {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg && reg.waiting) {
+          reg.waiting.postMessage({ action: 'skipWaiting' });
+        }
+        window.location.reload();
+      });
+    }
+    
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'true' : 'false');
+    }
+    
+    function loadDarkMode() {
+      const darkMode = localStorage.getItem('darkMode');
+      if (darkMode === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+    }
+    
+    function calculateDaysLeft(expirationDate) {
+      const today = new Date();
+      const expDate = new Date(expirationDate);
+      const diffTime = expDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    }
+    
+    function calculateEvalDays(lastEval) {
+      const evalDate = new Date(lastEval);
+      evalDate.setMonth(evalDate.getMonth() + 6);
+      const today = new Date();
+      const diffTime = evalDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return { nextEvaluation: evalDate, daysLeft: diffDays };
+    }
+    
+    function getDaysClass(days) {
+      if (days > 5) return 'days-green';
+      if (days >= 0 && days <= 5) return 'days-orange';
+      return 'days-red';
+    }
+    
+    function resetData() {
+      if (confirm("Opravdu chceš smazat VŠECHNA data? Tato akce je nevratná.")) {
+        localStorage.removeItem('ipHlidacData');
+        localStorage.removeItem('ipHlidacCalendar');
+        localStorage.removeItem('ipHlidacSettings');
+        location.reload();
+      }
+    }
+    
+    function clearCompleted() {
+      if (confirm("Opravdu chceš odstranit všechny hotové položky? Tato akce je nevratná.")) {
+        clients.forEach(client => {
+          client.plans = client.plans.filter(plan => {
+            if (plan.completed) return false;
+            plan.steps = plan.steps.filter(step => !step.completed);
+            return true;
+          });
+        });
+        saveData();
+        renderClients();
+        renderSummary();
+        renderTasks();
+      }
+    }
+  </script>
 </body>
 </html>
